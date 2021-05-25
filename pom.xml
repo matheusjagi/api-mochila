@@ -6,7 +6,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>2.5.0</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/> <!-- lookup parent from com.ifes.algoritmogenetico.apimochila.repository -->
 	</parent>
 	<groupId>com.ifes.algoritmo-genetico</groupId>
 	<artifactId>api-mochila</artifactId>
