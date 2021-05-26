@@ -18,9 +18,15 @@ import java.util.List;
 public class CromossomoResource {
     private final CromossomoService cromossomoService;
 
+//    @GetMapping
+//    public ResponseEntity<List<Cromossomo>> inicializaPopulacao(){
+//        cromossomoService.abasteceBaseDados();
+//        return new ResponseEntity<>(cromossomoService.inicializaPopulacao(1000), HttpStatus.OK);
+//    }
+
     @GetMapping
     public ResponseEntity<List<Cromossomo>> inicializaPopulacao(){
         cromossomoService.abasteceBaseDados();
-        return new ResponseEntity<>(cromossomoService.inicializaPopulacao(1000), HttpStatus.OK);
+        return new ResponseEntity<>(cromossomoService.crossoverUniforme(1000), HttpStatus.OK);
     }
 }

@@ -12,4 +12,6 @@ import java.util.List;
 public class Cromossomo implements Serializable {
 
     private List<Long> genes = new ArrayList<Long>(Collections.nCopies(500, 0L));
+
+    private Double avaliacao = 0D;
 }
