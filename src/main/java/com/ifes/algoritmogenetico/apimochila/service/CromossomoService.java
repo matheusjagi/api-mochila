@@ -2,6 +2,7 @@ package com.ifes.algoritmogenetico.apimochila.service;
 
 import com.ifes.algoritmogenetico.apimochila.domain.Cromossomo;
 import com.ifes.algoritmogenetico.apimochila.domain.Item;
+import com.ifes.algoritmogenetico.apimochila.repository.DadosRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,37 +22,8 @@ import java.util.stream.IntStream;
 @Transactional
 @RequiredArgsConstructor
 public class CromossomoService {
-
-    private List<Item> itens = new ArrayList<>();
-
-    public void abasteceBaseDados() {
-        String urlArquivoCSV = "/home/titostauffer/Área de Trabalho/Trabalho Igor Pulini/itens.csv";
-        String csvDivisor = ";";
-        String linha = "";
-        BufferedReader bufferedReader = null;
-        boolean primeiraVez = true;
-
-        try {
-            bufferedReader = new BufferedReader(new FileReader(urlArquivoCSV));
-
-            while ((linha = bufferedReader.readLine()) != null) {
-                if(primeiraVez){
-                    primeiraVez = false;
-                }else{
-                    String[] divisorLinha = linha.split(csvDivisor);
-
-                    Item item = new Item();
-                    item.setPeso(Double.valueOf(divisorLinha[1]));
-                    item.setUtilidade(Long.valueOf(divisorLinha[2]));
-                    item.setPreco(Double.valueOf(divisorLinha[3]));
-                    item.setAvaliacao(item.getUtilidade()/item.getPreco());
-                    this.itens.add(item);
-                }
-            }
-        }catch (IOException error){
-            error.printStackTrace();
-        }
-    }
+    private DadosRepository dadosRepository;
+    private List<Item> itens = dadosRepository.abasteceBaseDados();
 
     public Cromossomo inicializaCromossomo(){
         Random random = new Random(ThreadLocalRandom.current().nextInt());
@@ -90,12 +62,11 @@ public class CromossomoService {
 
     public List<Cromossomo> crossoverUniforme(int tamanhoPopulacao){
         Random random = new Random(ThreadLocalRandom.current().nextInt());
-        List<Cromossomo> filhos = new ArrayList<>();
-        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        List<Cromossomo> populacaoCrossoverUniforme = inicializaPopulacao(tamanhoPopulacao);
 
         IntStream.range(0, (tamanhoPopulacao/2)).forEach(iterador -> {
-            Cromossomo pai_1 = populacao.get(random.nextInt(tamanhoPopulacao));
-            Cromossomo pai_2 = populacao.get(random.nextInt(tamanhoPopulacao));
+            Cromossomo pai_1 = populacaoCrossoverUniforme.get(random.nextInt(tamanhoPopulacao));
+            Cromossomo pai_2 = populacaoCrossoverUniforme.get(random.nextInt(tamanhoPopulacao));
             Cromossomo filho_1 = new Cromossomo();
             Cromossomo filho_2 = new Cromossomo();
             Cromossomo cromossomoGerador = new Cromossomo();
@@ -116,12 +87,12 @@ public class CromossomoService {
             calculaAvaliacaoCromossomo(filho_1);
             calculaAvaliacaoCromossomo(filho_2);
 
-            filhos.addAll(Arrays.asList(filho_1,filho_2));
+            populacaoCrossoverUniforme.addAll(Arrays.asList(filho_1,filho_2));
         });
 
-        ordenaPorMelhorAvaliacao(filhos);
+        ordenaPorMelhorAvaliacao(populacaoCrossoverUniforme);
 
-        return filhos;
+        return populacaoCrossoverUniforme;
     }
 
 
