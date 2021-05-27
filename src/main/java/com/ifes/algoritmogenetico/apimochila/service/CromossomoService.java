@@ -2,18 +2,16 @@ package com.ifes.algoritmogenetico.apimochila.service;
 
 import com.ifes.algoritmogenetico.apimochila.domain.Cromossomo;
 import com.ifes.algoritmogenetico.apimochila.domain.Item;
-import com.ifes.algoritmogenetico.apimochila.repository.DadosRepository;
+import com.ifes.algoritmogenetico.apimochila.repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
@@ -22,8 +20,19 @@ import java.util.stream.IntStream;
 @Transactional
 @RequiredArgsConstructor
 public class CromossomoService {
-    private DadosRepository dadosRepository;
-    private List<Item> itens = dadosRepository.abasteceBaseDados();
+
+    private final ItemRepository itemRepository;
+
+    private List<Item> itens;
+
+    public void abasteceBaseDados(){
+        this.itens = itemRepository.abasteceBaseDados();
+    }
+
+    public int sorteaPorcentagem(){
+        Random random = new Random(ThreadLocalRandom.current().nextInt());
+        return random.nextInt(100) + 1;
+    }
 
     public Cromossomo inicializaCromossomo(){
         Random random = new Random(ThreadLocalRandom.current().nextInt());
@@ -95,6 +104,76 @@ public class CromossomoService {
         return populacaoCrossoverUniforme;
     }
 
+    public List<Cromossomo> populacaocrossoverBaseadoEmMaioria(int tamanhoPopulacao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+
+        IntStream.range(0,tamanhoPopulacao).forEach(incrementa -> {
+            populacao.add(crossoverBaseadoEmMaioria(populacao));
+        });
+
+        ordenaPorMelhorAvaliacao(populacao);
+
+        return populacao;
+    }
+
+    public Cromossomo crossoverBaseadoEmMaioria(List<Cromossomo> populacao){
+        List<Cromossomo> pais = selecionaPaisAleatorios(populacao, 7);
+
+        Long[] cromossomoVerificador = new Long[pais.size()];
+        Cromossomo filhoGerado = new Cromossomo();
+
+        IntStream.range(0,pais.get(0).getGenes().size()).forEach( index -> {
+            IntStream.range(0, pais.size()).forEach( iterator -> {
+                cromossomoVerificador[iterator] = pais.get(iterator).getGenes().get(index);
+            });
+
+            Long contUm = Arrays.stream(cromossomoVerificador).filter(gen -> gen.equals(1L)).count();
+            Long contZero = Arrays.stream(cromossomoVerificador).filter(gen -> gen.equals(0L)).count();
+
+            Long porcentagemIncidenciaGen_1 = (contUm * 100) / cromossomoVerificador.length;
+            Long porcentagemIncidenciaGen_0 = (contZero * 100) / cromossomoVerificador.length;
+
+            int porcentagemSorteada = sorteaPorcentagem();
+
+            if(contUm.equals(Long.valueOf(pais.size())) || contZero.equals(Long.valueOf(pais.size()))){
+                if(contZero.equals(0L)) {
+                    filhoGerado.getGenes().set(index, 1L);
+                }else {
+                    filhoGerado.getGenes().set(index, 0L);
+                }
+            }
+            else {
+                if (porcentagemIncidenciaGen_1.compareTo(porcentagemIncidenciaGen_0) > 0) {
+                    if(porcentagemSorteada > (100 - porcentagemIncidenciaGen_1)) {
+                        filhoGerado.getGenes().set(index, 1L);
+                    }else {
+                        filhoGerado.getGenes().set(index, 0L);
+                    }
+                } else {
+                    if(porcentagemSorteada > (100 - porcentagemIncidenciaGen_0)){
+                        filhoGerado.getGenes().set(index, 0L);
+                    }else {
+                        filhoGerado.getGenes().set(index, 1L);
+                    }
+                }
+            }
+        });
+
+        calculaAvaliacaoCromossomo(filhoGerado);
+
+        return filhoGerado;
+    }
+
+    public List<Cromossomo> selecionaPaisAleatorios(List<Cromossomo> populacao, int quantidadePais){
+        Random random = new Random(ThreadLocalRandom.current().nextInt());
+        List<Cromossomo> pais = new ArrayList<>();
+
+        IntStream.range(0, quantidadePais).forEach(index -> {
+            pais.add(populacao.get(random.nextInt(populacao.size())));
+        });
+
+        return pais;
+    }
 
     public void calculaAvaliacaoCromossomo(Cromossomo cromossomo){
        IntStream.range(0,cromossomo.getGenes().size()).forEach(index -> {
