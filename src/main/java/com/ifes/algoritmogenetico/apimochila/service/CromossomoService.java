@@ -69,6 +69,25 @@ public class CromossomoService {
         return cromossomos;
     }
 
+    public List<Cromossomo> selecionaPaisAleatorios(List<Cromossomo> populacao, int quantidadePais){
+        Random random = new Random(ThreadLocalRandom.current().nextInt());
+        List<Cromossomo> pais = new ArrayList<>();
+
+        IntStream.range(0, quantidadePais).forEach(index -> {
+            pais.add(populacao.get(random.nextInt(populacao.size())));
+        });
+
+        return pais;
+    }
+
+    public void calculaAvaliacaoCromossomo(Cromossomo cromossomo){
+        IntStream.range(0,cromossomo.getGenes().size()).forEach(index -> {
+            if(cromossomo.getGenes().get(index).equals(1L)){
+                cromossomo.setAvaliacao(cromossomo.getAvaliacao() + this.itens.get(index).getAvaliacao());
+            }
+        });
+    }
+
     public List<Cromossomo> crossoverUniforme(int tamanhoPopulacao){
         Random random = new Random(ThreadLocalRandom.current().nextInt());
         List<Cromossomo> populacaoCrossoverUniforme = inicializaPopulacao(tamanhoPopulacao);
@@ -104,7 +123,7 @@ public class CromossomoService {
         return populacaoCrossoverUniforme;
     }
 
-    public List<Cromossomo> populacaocrossoverBaseadoEmMaioria(int tamanhoPopulacao){
+    public List<Cromossomo> populacaoCrossoverBaseadoEmMaioria(int tamanhoPopulacao){
         List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
 
         IntStream.range(0,tamanhoPopulacao).forEach(incrementa -> {
@@ -164,22 +183,15 @@ public class CromossomoService {
         return filhoGerado;
     }
 
-    public List<Cromossomo> selecionaPaisAleatorios(List<Cromossomo> populacao, int quantidadePais){
-        Random random = new Random(ThreadLocalRandom.current().nextInt());
-        List<Cromossomo> pais = new ArrayList<>();
+    public List<Cromossomo> torneio(int tamanhoPopulacao, int tamanhoTorneio, int quantidadeIndividuosSelecionados){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        List<Cromossomo> individuosSelecionados = new ArrayList<>();
 
-        IntStream.range(0, quantidadePais).forEach(index -> {
-            pais.add(populacao.get(random.nextInt(populacao.size())));
+        IntStream.range(0,quantidadeIndividuosSelecionados).forEach(index -> {
+            List<Cromossomo> listaTorneio = selecionaPaisAleatorios(populacao, tamanhoTorneio);
+            individuosSelecionados.add(Collections.max(listaTorneio, Comparator.comparing(Cromossomo::getAvaliacao)));
         });
 
-        return pais;
-    }
-
-    public void calculaAvaliacaoCromossomo(Cromossomo cromossomo){
-       IntStream.range(0,cromossomo.getGenes().size()).forEach(index -> {
-           if(cromossomo.getGenes().get(index).equals(1L)){
-               cromossomo.setAvaliacao(cromossomo.getAvaliacao() + this.itens.get(index).getAvaliacao());
-           }
-       });
+        return individuosSelecionados;
     }
 }

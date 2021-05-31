@@ -1,7 +1,6 @@
 package com.ifes.algoritmogenetico.apimochila.resource;
 
 import com.ifes.algoritmogenetico.apimochila.domain.Cromossomo;
-import com.ifes.algoritmogenetico.apimochila.domain.Item;
 import com.ifes.algoritmogenetico.apimochila.service.CromossomoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,12 +20,18 @@ public class CromossomoResource {
     @GetMapping("/crossover/baseado-maioria")
     public ResponseEntity<List<Cromossomo>> crossoverBaseadoEmMaioria(){
         cromossomoService.abasteceBaseDados();
-        return new ResponseEntity<>(cromossomoService.populacaocrossoverBaseadoEmMaioria(1000), HttpStatus.OK);
+        return new ResponseEntity<>(cromossomoService.populacaoCrossoverBaseadoEmMaioria(1000), HttpStatus.OK);
     }
 
     @GetMapping("/crossover/uniforme")
     public ResponseEntity<List<Cromossomo>> crossoverUniforme(){
         cromossomoService.abasteceBaseDados();
         return new ResponseEntity<>(cromossomoService.crossoverUniforme(1000), HttpStatus.OK);
+    }
+
+    @GetMapping("/selecao/torneio")
+    public ResponseEntity<List<Cromossomo>> torneio(){
+        cromossomoService.abasteceBaseDados();
+        return new ResponseEntity<>(cromossomoService.torneio(1000, 2, 7), HttpStatus.OK);
     }
 }
