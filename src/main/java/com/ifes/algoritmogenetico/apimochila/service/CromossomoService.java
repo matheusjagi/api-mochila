@@ -69,6 +69,11 @@ public class CromossomoService {
         return cromossomos;
     }
 
+    public List<Cromossomo> ordenaPorPiorAvaliacao(List<Cromossomo> cromossomos){
+        cromossomos.sort(Comparator.comparing(Cromossomo::getAvaliacao));
+        return cromossomos;
+    }
+
     public List<Cromossomo> selecionaPaisAleatorios(List<Cromossomo> populacao, int quantidadePais){
         Random random = new Random(ThreadLocalRandom.current().nextInt());
         List<Cromossomo> pais = new ArrayList<>();
@@ -194,4 +199,40 @@ public class CromossomoService {
 
         return individuosSelecionados;
     }
+
+    public Double calculaRanking(Double MIN, Double MAX, Double INDIVIDUOS, int CLASSIFICACAO){
+        return MIN + (MAX - MIN) * ( (CLASSIFICACAO - 1) / (INDIVIDUOS - 1));
+    }
+
+    public Double sorteiaDouble(Double MIN, Double MAX){
+        return MIN + (Double)(Math.random() * (MAX - MIN));
+    }
+
+    public List<Cromossomo> ranking(int tamanhoPopulacao,  int quantidadeIndividuosSelecionados){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        ordenaPorPiorAvaliacao(populacao);
+
+        final Double MIN = 0.9;
+        final Double MAX = 1.1;
+        final Double INDIVIDUOS = Double.valueOf(populacao.size());
+
+        List<Double> ranking = new ArrayList<Double>();
+
+        populacao.forEach(cromossomo -> {
+            ranking.add(calculaRanking(MIN,MAX,INDIVIDUOS,(populacao.indexOf(cromossomo) + 1)));
+        });
+
+        List<Cromossomo> individuosSelecionados = new ArrayList<>();
+
+        IntStream.range(0,quantidadeIndividuosSelecionados).forEach(index -> {
+            Double numeroSorteado = sorteiaDouble(MIN, MAX);
+            int indexIndividuoEscolhido = ranking.indexOf(ranking.stream().filter(numero -> numero >= numeroSorteado).findFirst().get());
+            individuosSelecionados.add(populacao.get(indexIndividuoEscolhido));
+        });
+
+        ordenaPorMelhorAvaliacao(individuosSelecionados);
+
+        return individuosSelecionados;
+    }
+
 }

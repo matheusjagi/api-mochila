@@ -34,4 +34,10 @@ public class CromossomoResource {
         cromossomoService.abasteceBaseDados();
         return new ResponseEntity<>(cromossomoService.torneio(1000, 2, 7), HttpStatus.OK);
     }
+
+    @GetMapping("/selecao/ranking")
+    public ResponseEntity<List<Cromossomo>> ranking(){
+        cromossomoService.abasteceBaseDados();
+        return new ResponseEntity<>(cromossomoService.ranking(1000, 10), HttpStatus.OK);
+    }
 }
