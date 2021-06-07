@@ -11,33 +11,57 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/cromossomo")
+@RequestMapping("/api/algoritmo")
 @RequiredArgsConstructor
 public class CromossomoResource {
 
     private final CromossomoService cromossomoService;
 
-    @GetMapping("/crossover/baseado-maioria")
-    public ResponseEntity<List<Cromossomo>> crossoverBaseadoEmMaioria(){
+    @GetMapping("/ranking/crossover-baseado-maioria/mi-lambda")
+    public ResponseEntity<List<Cromossomo>> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(){
         cromossomoService.abasteceBaseDados();
-        return new ResponseEntity<>(cromossomoService.populacaoCrossoverBaseadoEmMaioria(1000), HttpStatus.OK);
+        return new ResponseEntity<>(cromossomoService.evolucaoRankingCrossoverBaseadoMaioriaMiLambda(2000, 1000), HttpStatus.OK);
     }
 
-    @GetMapping("/crossover/uniforme")
-    public ResponseEntity<List<Cromossomo>> crossoverUniforme(){
+    @GetMapping("/torneio/crossover-baseado-maioria/mi-lambda")
+    public ResponseEntity<List<Cromossomo>> evolucaoTorneioCrossoverBaseadoMaioriaMiLambda(){
         cromossomoService.abasteceBaseDados();
-        return new ResponseEntity<>(cromossomoService.crossoverUniforme(1000), HttpStatus.OK);
+        return new ResponseEntity<>(cromossomoService.evolucaoTorneioCrossoverBaseadoMaioriaMiLambda(2000, 500), HttpStatus.OK);
     }
 
-    @GetMapping("/selecao/torneio")
-    public ResponseEntity<List<Cromossomo>> torneio(){
+    @GetMapping("/ranking/crossover-uniforme/mi-lambda")
+    public ResponseEntity<List<Cromossomo>> evolucaoRankingCrossoverUniformeMiLambda(){
         cromossomoService.abasteceBaseDados();
-        return new ResponseEntity<>(cromossomoService.torneio(1000, 2, 7), HttpStatus.OK);
+        return new ResponseEntity<>(cromossomoService.evolucaoRankingCrossoverUniformeMiLambda(2000, 500), HttpStatus.OK);
     }
 
-    @GetMapping("/selecao/ranking")
-    public ResponseEntity<List<Cromossomo>> ranking(){
+    @GetMapping("/torneio/crossover-uniforme/mi-lambda")
+    public ResponseEntity<List<Cromossomo>> evolucaoTorneioCrossoverUniformeMiLambda(){
         cromossomoService.abasteceBaseDados();
-        return new ResponseEntity<>(cromossomoService.ranking(1000, 10), HttpStatus.OK);
+        return new ResponseEntity<>(cromossomoService.evolucaoTorneioCrossoverUniformeMiLambda(2000, 500), HttpStatus.OK);
+    }
+
+    @GetMapping("/ranking/crossover-baseado-maioria/elitismo")
+    public ResponseEntity<List<Cromossomo>> evolucaoRankingCrossoverBaseadoMaioriaElitismo(){
+        cromossomoService.abasteceBaseDados();
+        return new ResponseEntity<>(cromossomoService.evolucaoRankingCrossoverBaseadoMaioriaElitismo(2000, 500), HttpStatus.OK);
+    }
+
+    @GetMapping("/torneio/crossover-baseado-maioria/elitismo")
+    public ResponseEntity<List<Cromossomo>> evolucaoTorneioCrossoverBaseadoMaioriaElitismo(){
+        cromossomoService.abasteceBaseDados();
+        return new ResponseEntity<>(cromossomoService.evolucaoTorneioCrossoverBaseadoMaioriaElitismo(2000, 500), HttpStatus.OK);
+    }
+
+    @GetMapping("/ranking/crossover-uniforme/elitismo")
+    public ResponseEntity<List<Cromossomo>> evolucaoRankingCrossoverUniformeElitismo(){
+        cromossomoService.abasteceBaseDados();
+        return new ResponseEntity<>(cromossomoService.evolucaoRankingCrossoverUniformeElitismo(2000, 500), HttpStatus.OK);
+    }
+
+    @GetMapping("/torneio/crossover-uniforme/elitismo")
+    public ResponseEntity<List<Cromossomo>> evolucaoTorneioCrossoverUniformeElitismo(){
+        cromossomoService.abasteceBaseDados();
+        return new ResponseEntity<>(cromossomoService.evolucaoTorneioCrossoverUniformeElitismo(2000, 500), HttpStatus.OK);
     }
 }

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Service
@@ -31,13 +32,14 @@ public class CromossomoService {
 
     public int sorteaPorcentagem(){
         Random random = new Random(ThreadLocalRandom.current().nextInt());
-        return random.nextInt(100) + 1;
+        return random.nextInt(100);
     }
 
     public Cromossomo inicializaCromossomo(){
         Random random = new Random(ThreadLocalRandom.current().nextInt());
         Cromossomo cromossomo = new Cromossomo();
-        Double capacidadeMochila = 0D;
+        cromossomo.setAvaliacao(0.0);
+        Double capacidadeMochila = 0.0;
         int numeroSorteado = 0;
 
         while(capacidadeMochila <= 12){
@@ -46,6 +48,7 @@ public class CromossomoService {
             if(capacidadeMochila > 12) { break; }
             cromossomo.setAvaliacao(cromossomo.getAvaliacao() + this.itens.get(numeroSorteado).getAvaliacao());
             cromossomo.getGenes().set(numeroSorteado, 1L);
+            cromossomo.setPeso(capacidadeMochila);
         }
 
         return cromossomo;
@@ -86,6 +89,7 @@ public class CromossomoService {
     }
 
     public void calculaAvaliacaoCromossomo(Cromossomo cromossomo){
+        cromossomo.setAvaliacao(0.0);
         IntStream.range(0,cromossomo.getGenes().size()).forEach(index -> {
             if(cromossomo.getGenes().get(index).equals(1L)){
                 cromossomo.setAvaliacao(cromossomo.getAvaliacao() + this.itens.get(index).getAvaliacao());
@@ -93,56 +97,76 @@ public class CromossomoService {
         });
     }
 
-    public List<Cromossomo> crossoverUniforme(int tamanhoPopulacao){
+    public void calculaPesoCromossomo(Cromossomo cromossomo){
+        cromossomo.setPeso(0.0);
+        IntStream.range(0,cromossomo.getGenes().size()).forEach(index -> {
+            if(cromossomo.getGenes().get(index).equals(1L)){
+                cromossomo.setPeso(cromossomo.getPeso() + this.itens.get(index).getPeso());
+            }
+        });
+    }
+
+    public void calculaUtilidadeCromossomo(Cromossomo cromossomo){
+        cromossomo.setUtilidade(0L);
+        IntStream.range(0,cromossomo.getGenes().size()).forEach(index -> {
+            if(cromossomo.getGenes().get(index).equals(1L)){
+                cromossomo.setUtilidade(cromossomo.getUtilidade() + this.itens.get(index).getUtilidade());
+            }
+        });
+    }
+
+    public void calculaPrecoCromossomo(Cromossomo cromossomo){
+        cromossomo.setPreco(0.0);
+        IntStream.range(0,cromossomo.getGenes().size()).forEach(index -> {
+            if(cromossomo.getGenes().get(index).equals(1L)){
+                cromossomo.setPreco(cromossomo.getPreco() + this.itens.get(index).getPreco());
+            }
+        });
+    }
+
+    public void calculaAtributosDaPopulacao(List<Cromossomo> populacao){
+        populacao.forEach(cromossomo -> {
+            calculaAvaliacaoCromossomo(cromossomo);
+            calculaPesoCromossomo(cromossomo);
+            calculaPrecoCromossomo(cromossomo);
+            calculaUtilidadeCromossomo(cromossomo);
+        });
+    }
+
+    public List<Cromossomo> crossoverUniforme(List<Cromossomo> pais){
         Random random = new Random(ThreadLocalRandom.current().nextInt());
-        List<Cromossomo> populacaoCrossoverUniforme = inicializaPopulacao(tamanhoPopulacao);
+        List<Cromossomo> filhos = new ArrayList<>();
 
-        IntStream.range(0, (tamanhoPopulacao/2)).forEach(iterador -> {
-            Cromossomo pai_1 = populacaoCrossoverUniforme.get(random.nextInt(tamanhoPopulacao));
-            Cromossomo pai_2 = populacaoCrossoverUniforme.get(random.nextInt(tamanhoPopulacao));
-            Cromossomo filho_1 = new Cromossomo();
-            Cromossomo filho_2 = new Cromossomo();
-            Cromossomo cromossomoGerador = new Cromossomo();
+        Cromossomo primeiroPai = pais.get(0);
+        Cromossomo segundoPai = pais.get(1);
+        Cromossomo filho_1 = new Cromossomo();
+        Cromossomo filho_2 = new Cromossomo();
+        Cromossomo cromossomoGerador = new Cromossomo();
 
-            cromossomoGerador.getGenes().forEach(gen -> {
-                int index = cromossomoGerador.getGenes().indexOf(gen);
-                cromossomoGerador.getGenes().set(index, Long.valueOf(random.nextInt(2) + 1));
+        cromossomoGerador.getGenes().forEach(gen -> {
+            int index = cromossomoGerador.getGenes().indexOf(gen);
+            cromossomoGerador.getGenes().set(index, Long.valueOf(random.nextInt(2) + 1));
 
-                if(gen.equals(1)) {
-                    filho_1.getGenes().set(index, pai_1.getGenes().get(index));
-                    filho_2.getGenes().set(index, pai_2.getGenes().get(index));
-                }else{
-                    filho_1.getGenes().set(index, pai_2.getGenes().get(index));
-                    filho_2.getGenes().set(index, pai_1.getGenes().get(index));
-                }
-            });
-
-            calculaAvaliacaoCromossomo(filho_1);
-            calculaAvaliacaoCromossomo(filho_2);
-
-            populacaoCrossoverUniforme.addAll(Arrays.asList(filho_1,filho_2));
+            if(gen.equals(1)) {
+                filho_1.getGenes().set(index, primeiroPai.getGenes().get(index));
+                filho_2.getGenes().set(index, segundoPai.getGenes().get(index));
+            }else{
+                filho_1.getGenes().set(index, segundoPai.getGenes().get(index));
+                filho_2.getGenes().set(index, primeiroPai.getGenes().get(index));
+            }
         });
 
-        ordenaPorMelhorAvaliacao(populacaoCrossoverUniforme);
+        calculaAvaliacaoCromossomo(filho_1);
+        calculaPesoCromossomo(filho_1);
+        calculaAvaliacaoCromossomo(filho_2);
+        calculaPesoCromossomo(filho_2);
 
-        return populacaoCrossoverUniforme;
+        filhos.addAll(Arrays.asList(filho_1,filho_2));
+
+        return filhos;
     }
 
-    public List<Cromossomo> populacaoCrossoverBaseadoEmMaioria(int tamanhoPopulacao){
-        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
-
-        IntStream.range(0,tamanhoPopulacao).forEach(incrementa -> {
-            populacao.add(crossoverBaseadoEmMaioria(populacao));
-        });
-
-        ordenaPorMelhorAvaliacao(populacao);
-
-        return populacao;
-    }
-
-    public Cromossomo crossoverBaseadoEmMaioria(List<Cromossomo> populacao){
-        List<Cromossomo> pais = selecionaPaisAleatorios(populacao, 7);
-
+    public Cromossomo crossoverBaseadoEmMaioria(List<Cromossomo> pais){
         Long[] cromossomoVerificador = new Long[pais.size()];
         Cromossomo filhoGerado = new Cromossomo();
 
@@ -184,12 +208,12 @@ public class CromossomoService {
         });
 
         calculaAvaliacaoCromossomo(filhoGerado);
+        calculaPesoCromossomo(filhoGerado);
 
         return filhoGerado;
     }
 
-    public List<Cromossomo> torneio(int tamanhoPopulacao, int tamanhoTorneio, int quantidadeIndividuosSelecionados){
-        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+    public List<Cromossomo> torneio(List<Cromossomo> populacao, int tamanhoTorneio, int quantidadeIndividuosSelecionados){
         List<Cromossomo> individuosSelecionados = new ArrayList<>();
 
         IntStream.range(0,quantidadeIndividuosSelecionados).forEach(index -> {
@@ -208,8 +232,7 @@ public class CromossomoService {
         return MIN + (Double)(Math.random() * (MAX - MIN));
     }
 
-    public List<Cromossomo> ranking(int tamanhoPopulacao,  int quantidadeIndividuosSelecionados){
-        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+    public List<Cromossomo> ranking(List<Cromossomo> populacao,  int quantidadeIndividuosSelecionados){
         ordenaPorPiorAvaliacao(populacao);
 
         final Double MIN = 0.9;
@@ -218,8 +241,8 @@ public class CromossomoService {
 
         List<Double> ranking = new ArrayList<Double>();
 
-        populacao.forEach(cromossomo -> {
-            ranking.add(calculaRanking(MIN,MAX,INDIVIDUOS,(populacao.indexOf(cromossomo) + 1)));
+        IntStream.range(0,populacao.size()).forEach(indexCalculo -> {
+            ranking.add(calculaRanking(MIN,MAX,INDIVIDUOS,(indexCalculo + 1)));
         });
 
         List<Cromossomo> individuosSelecionados = new ArrayList<>();
@@ -230,9 +253,345 @@ public class CromossomoService {
             individuosSelecionados.add(populacao.get(indexIndividuoEscolhido));
         });
 
-        ordenaPorMelhorAvaliacao(individuosSelecionados);
-
         return individuosSelecionados;
     }
 
+    public List<Cromossomo> miLambda(List<Cromossomo> populacao, int tamanhoPopulacaoInicial){
+        ordenaPorMelhorAvaliacao(populacao);
+        return populacao.stream().limit(tamanhoPopulacaoInicial).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public void mutacao(Cromossomo cromossomo){
+        IntStream.range(0,cromossomo.getGenes().size()).forEach(index -> {
+            if(sorteaPorcentagem() <= 1){
+                if(cromossomo.getGenes().get(index).equals(0L)){
+                    cromossomo.getGenes().set(index, 1L);
+                }else{
+                    cromossomo.getGenes().set(index, 0L);
+                }
+            }
+        });
+
+        calculaPesoCromossomo(cromossomo);
+    }
+
+    public List<Cromossomo> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(int tamanhoPopulacao, int quantidadeEvolucao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        int tamanho = 0;
+
+        for (int iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = populacao.size();
+
+            while (tamanho < (tamanhoPopulacao * 2)) {
+                List<Cromossomo> pais = new ArrayList<>(ranking(populacao, 7));
+
+                if(sorteaPorcentagem() > 20) {
+                    Cromossomo filho = crossoverBaseadoEmMaioria(pais);
+
+                    if (sorteaPorcentagem() <= 20) {
+                        mutacao(filho);
+                    }
+
+                    if (filho.getPeso() > 12) {
+                        filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
+                    }
+
+                    populacao.add(filho);
+                }else{
+                    ordenaPorMelhorAvaliacao(pais);
+                    populacao.add(pais.get(0));
+                }
+
+                tamanho = populacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(populacao);
+            populacao = new ArrayList<>(miLambda(populacao, tamanhoPopulacao));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        return populacao;
+    }
+
+    public List<Cromossomo> evolucaoTorneioCrossoverBaseadoMaioriaMiLambda(int tamanhoPopulacao, int quantidadeEvolucao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        int tamanho = 0;
+
+        for (int iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = populacao.size();
+
+            while (tamanho < (tamanhoPopulacao * 2)) {
+                List<Cromossomo> pais = new ArrayList<>(torneio(populacao, 2, 7));
+
+                if(sorteaPorcentagem() > 20) {
+                    Cromossomo filho = crossoverBaseadoEmMaioria(pais);
+
+                    if (sorteaPorcentagem() <= 20) {
+                        mutacao(filho);
+                    }
+
+                    if (filho.getPeso() > 12) {
+                        filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
+                    }
+
+                    populacao.add(filho);
+                }else{
+                    ordenaPorMelhorAvaliacao(pais);
+                    populacao.add(pais.get(0));
+                }
+
+                tamanho = populacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(populacao);
+            populacao = new ArrayList<>(miLambda(populacao, tamanhoPopulacao));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        return populacao;
+    }
+
+    public List<Cromossomo> evolucaoRankingCrossoverUniformeMiLambda(int tamanhoPopulacao, int quantidadeEvolucao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        int tamanho = 0;
+
+        for (int iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = populacao.size();
+
+            while (tamanho < (tamanhoPopulacao * 2)) {
+                List<Cromossomo> pais = new ArrayList<>(ranking(populacao, 2));
+
+                if(sorteaPorcentagem() > 20) {
+                    List<Cromossomo> filhos = crossoverUniforme(pais);
+
+                    filhos.forEach(filho -> {
+                        if (sorteaPorcentagem() <= 20) {
+                            mutacao(filho);
+                        }
+
+                        if (filho.getPeso() > 12) {
+                            filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
+                        }
+                    });
+
+                    populacao.addAll(filhos);
+                }else{
+                    ordenaPorMelhorAvaliacao(pais);
+                    populacao.add(pais.get(0));
+                }
+
+                tamanho = populacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(populacao);
+            populacao = new ArrayList<>(miLambda(populacao, tamanhoPopulacao));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        return populacao;
+    }
+
+    public List<Cromossomo> evolucaoTorneioCrossoverUniformeMiLambda(int tamanhoPopulacao, int quantidadeEvolucao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        int tamanho = 0;
+
+        for (int iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = populacao.size();
+
+            while (tamanho < (tamanhoPopulacao * 2)) {
+                List<Cromossomo> pais = new ArrayList<>(torneio(populacao, 2, 2));
+
+                if(sorteaPorcentagem() > 20) {
+                    List<Cromossomo> filhos = crossoverUniforme(pais);
+
+                    filhos.forEach(filho -> {
+                        if (sorteaPorcentagem() <= 20) {
+                            mutacao(filho);
+                        }
+
+                        if (filho.getPeso() > 12) {
+                            filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
+                        }
+                    });
+
+                    populacao.addAll(filhos);
+                }else{
+                    ordenaPorMelhorAvaliacao(pais);
+                    populacao.add(pais.get(0));
+                }
+
+                tamanho = populacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(populacao);
+            populacao = new ArrayList<>(miLambda(populacao, tamanhoPopulacao));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        return populacao;
+    }
+
+    public List<Cromossomo> evolucaoRankingCrossoverBaseadoMaioriaElitismo(int tamanhoPopulacao, int quantidadeEvolucao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        List<Cromossomo> novaPopulacao = populacao.stream().limit(10).collect(Collectors.toCollection(ArrayList::new));
+        int tamanho = 0;
+
+        for (int iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = novaPopulacao.size();
+
+            while (tamanho < tamanhoPopulacao) {
+                List<Cromossomo> pais = new ArrayList<>(ranking(populacao, 7));
+
+                if (sorteaPorcentagem() > 20) {
+                    Cromossomo filho = crossoverBaseadoEmMaioria(pais);
+
+                    if (sorteaPorcentagem() <= 20) {
+                        mutacao(filho);
+                    }
+
+                    if (filho.getPeso() > 12) {
+                        filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
+                    }
+
+                    novaPopulacao.add(filho);
+                } else {
+                    ordenaPorMelhorAvaliacao(pais);
+                    novaPopulacao.add(pais.get(0));
+                }
+
+                tamanho = novaPopulacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(novaPopulacao);
+            populacao = new ArrayList<>(novaPopulacao);
+            novaPopulacao = populacao.stream().limit(10).collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        return populacao;
+    }
+
+    public List<Cromossomo> evolucaoTorneioCrossoverBaseadoMaioriaElitismo(int tamanhoPopulacao, int quantidadeEvolucao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        List<Cromossomo> novaPopulacao = populacao.stream().limit(10).collect(Collectors.toCollection(ArrayList::new));
+        int tamanho = 0;
+
+        for (int iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = novaPopulacao.size();
+
+            while (tamanho < tamanhoPopulacao) {
+                List<Cromossomo> pais = new ArrayList<>(torneio(populacao, 2, 7));
+
+                if (sorteaPorcentagem() > 20) {
+                    Cromossomo filho = crossoverBaseadoEmMaioria(pais);
+
+                    if (sorteaPorcentagem() <= 20) {
+                        mutacao(filho);
+                    }
+
+                    if (filho.getPeso() > 12) {
+                        filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
+                    }
+
+                    novaPopulacao.add(filho);
+                } else {
+                    ordenaPorMelhorAvaliacao(pais);
+                    novaPopulacao.add(pais.get(0));
+                }
+
+                tamanho = novaPopulacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(novaPopulacao);
+            populacao = new ArrayList<>(novaPopulacao);
+            novaPopulacao = populacao.stream().limit(10).collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        return populacao;
+    }
+
+    public List<Cromossomo> evolucaoRankingCrossoverUniformeElitismo(int tamanhoPopulacao, int quantidadeEvolucao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        List<Cromossomo> novaPopulacao = populacao.stream().limit(10).collect(Collectors.toCollection(ArrayList::new));
+        int tamanho = 0;
+
+        for (int iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = novaPopulacao.size();
+
+            while (tamanho < tamanhoPopulacao) {
+                List<Cromossomo> pais = new ArrayList<>(ranking(populacao, 2));
+
+                if (sorteaPorcentagem() > 20) {
+                    List<Cromossomo> filhos = crossoverUniforme(pais);
+
+                    filhos.forEach(filho -> {
+                        if (sorteaPorcentagem() <= 20) {
+                            mutacao(filho);
+                        }
+
+                        if (filho.getPeso() > 12) {
+                            filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
+                        }
+                    });
+
+                    novaPopulacao.addAll(filhos);
+                } else {
+                    ordenaPorMelhorAvaliacao(pais);
+                    novaPopulacao.add(pais.get(0));
+                }
+
+                tamanho = novaPopulacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(novaPopulacao);
+            populacao = new ArrayList<>(novaPopulacao);
+            novaPopulacao = populacao.stream().limit(10).collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        return populacao;
+    }
+
+    public List<Cromossomo> evolucaoTorneioCrossoverUniformeElitismo(int tamanhoPopulacao, int quantidadeEvolucao){
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        List<Cromossomo> novaPopulacao = populacao.stream().limit(10).collect(Collectors.toCollection(ArrayList::new));
+        int tamanho = 0;
+
+        for (int iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = novaPopulacao.size();
+
+            while (tamanho < tamanhoPopulacao) {
+                List<Cromossomo> pais = new ArrayList<>(torneio(populacao, 2, 2));
+
+                if (sorteaPorcentagem() > 20) {
+                    List<Cromossomo> filhos = crossoverUniforme(pais);
+
+                    filhos.forEach(filho -> {
+                        if (sorteaPorcentagem() <= 20) {
+                            mutacao(filho);
+                        }
+
+                        if (filho.getPeso() > 12) {
+                            filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
+                        }
+                    });
+
+                    novaPopulacao.addAll(filhos);
+                } else {
+                    ordenaPorMelhorAvaliacao(pais);
+                    novaPopulacao.add(pais.get(0));
+                }
+
+                tamanho = novaPopulacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(novaPopulacao);
+            populacao = new ArrayList<>(novaPopulacao);
+            novaPopulacao = populacao.stream().limit(10).collect(Collectors.toCollection(ArrayList::new));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        return populacao;
+    }
 }

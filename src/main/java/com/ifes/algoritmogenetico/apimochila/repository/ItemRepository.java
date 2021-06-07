@@ -15,18 +15,13 @@ public class ItemRepository implements DataRepository<Item> {
     @Override
     @Autowired
     public List<Item> abasteceBaseDados() {
-        List<Item> dados;
-        String urlArquivoCSV = "/home/titostauffer/Área de Trabalho/Trabalho Igor Pulini/itens.csv";
+        String urlArquivoCSV = "src/main/java/com/ifes/algoritmogenetico/apimochila/service/util/itens.csv";
 
         try {
-            return dados = Files.lines(Paths.get(urlArquivoCSV), StandardCharsets.ISO_8859_1)
+            return Files.lines(Paths.get(urlArquivoCSV), StandardCharsets.ISO_8859_1)
                     .skip(1)
                     .map(line -> line.split(";"))
-                    .map(col -> new Item(
-                            Double.valueOf(col[1]),
-                            Long.valueOf(col[2]),
-                            Double.valueOf(col[3]),
-                            Double.valueOf(col[2]) / Double.valueOf(col[3])))
+                    .map(col -> new Item(Double.valueOf(col[1]),Long.valueOf(col[2]),Double.valueOf(col[3]),Double.valueOf(col[2]) / Double.valueOf(col[3])))
                     .collect(Collectors.toList());
         } catch (IOException e) {
             e.printStackTrace();
