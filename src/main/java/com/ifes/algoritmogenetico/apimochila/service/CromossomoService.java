@@ -26,6 +26,12 @@ public class CromossomoService {
 
     private List<Item> itens;
 
+    private List<Cromossomo> conjuntos = new ArrayList<>();
+
+    static int k = 3;
+    static int Y = 8;
+    static int M = 3;
+
     public void abasteceBaseDados(){
         this.itens = itemRepository.abasteceBaseDados();
     }
@@ -273,6 +279,16 @@ public class CromossomoService {
         });
 
         calculaPesoCromossomo(cromossomo);
+    }
+
+    public Long calculaDiferencaEntreGenes(Cromossomo genotipo, Cromossomo individuo){
+        return IntStream.range(0, genotipo.getGenes().size())
+                .filter(index -> genotipo.getGenes().get(index).equals(individuo.getGenes().get(index)))
+                .count();
+    }
+
+    public Long calculaConvergenciaGenetica(){
+
     }
 
     public List<Cromossomo> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(int tamanhoPopulacao, int quantidadeEvolucao){
