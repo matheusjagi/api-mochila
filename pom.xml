@@ -14,7 +14,7 @@
 	<name>api-mochila</name>
 	<description>Resolvendo o problema da mochila com Algoritmo Genético</description>
 	<properties>
-		<java.version>11</java.version>
+		<java.version>8</java.version>
 	</properties>
 	<dependencies>
 		<dependency>

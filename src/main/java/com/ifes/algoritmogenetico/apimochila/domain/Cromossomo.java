@@ -25,6 +25,10 @@ public class Cromossomo implements Serializable, Cloneable {
 
     private Double preco;
 
+    private Long quantidadeItensColocadosMochila;
+
+    private List<Integer> itens;
+
     @Override
     public Cromossomo clone() {
         return this.clone();
