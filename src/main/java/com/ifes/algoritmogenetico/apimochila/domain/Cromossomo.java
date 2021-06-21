@@ -3,6 +3,7 @@ package com.ifes.algoritmogenetico.apimochila.domain;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class Cromossomo implements Serializable, Cloneable {
     private List<Integer> itens;
 
     @Override
-    public Cromossomo clone() {
-        return this.clone();
+    public Cromossomo clone() throws CloneNotSupportedException {
+        return (Cromossomo) super.clone();
     }
 }

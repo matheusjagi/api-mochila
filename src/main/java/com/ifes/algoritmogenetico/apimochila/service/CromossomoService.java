@@ -29,8 +29,8 @@ public class CromossomoService {
     private List<List<Cromossomo>> conjuntos = new ArrayList<>();
 
     static final Integer k = 4;
-    static final Integer Y = 5;
-    static final Integer M = 850;
+    static final Integer Y = 9;
+    static final Integer M = 700;
 
     static final Integer PESO_TOTAL_MOCHILA = 12;
 
@@ -148,12 +148,12 @@ public class CromossomoService {
         });
     }
 
-    public List<Cromossomo> crossoverUniforme(List<Cromossomo> pais){
+    public List<Cromossomo> crossoverUniforme(List<Cromossomo> pais) throws CloneNotSupportedException {
         Random random = new Random(ThreadLocalRandom.current().nextInt());
         List<Cromossomo> filhos = new ArrayList<>();
 
-        Cromossomo primeiroPai = pais.get(0);
-        Cromossomo segundoPai = pais.get(1);
+        Cromossomo primeiroPai = pais.get(0).clone();
+        Cromossomo segundoPai = pais.get(1).clone();
         Cromossomo filho_1 = new Cromossomo();
         Cromossomo filho_2 = new Cromossomo();
         Cromossomo cromossomoGerador = new Cromossomo();
@@ -287,7 +287,14 @@ public class CromossomoService {
             }
         });
 
+        calculaAvaliacaoCromossomo(cromossomo);
         calculaPesoCromossomo(cromossomo);
+    }
+
+    public void verificaPunicao(Cromossomo cromossomo){
+        if (cromossomo.getPeso() > PESO_TOTAL_MOCHILA) {
+            cromossomo.setAvaliacao(cromossomo.getAvaliacao() / ((cromossomo.getPeso() - 12) * 90000000000000000L));
+        }
     }
 
     public Long calculaDiferencaEntreGenes(Cromossomo genotipo, Cromossomo individuo){
@@ -325,47 +332,48 @@ public class CromossomoService {
         return false;
     }
 
-    public List<Cromossomo> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(Integer tamanhoPopulacao, Integer quantidadeEvolucao){
+    public List<Cromossomo> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(Integer tamanhoPopulacao, Integer quantidadeEvolucao) throws CloneNotSupportedException {
         List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
         Integer tamanho = 0;
         Integer TAXA_CRUZAMENTO = 85;
-        Integer TAXA_MUTACAO = 30;
+        Integer TAXA_MUTACAO = 25;
 
         for (Integer iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
             tamanho = populacao.size();
 
-//            if(iteracao % 10 == 0 && iteracao != 0 && iteracao != (quantidadeEvolucao - 1)) {
+            if(iteracao % 10 == 0 && iteracao != 0) {
                 conjuntos = new ArrayList<>();
                 List<Cromossomo> populacaoAuxiliar = new ArrayList(populacao);
                 populacaoAuxiliar.forEach(cromossomo -> calculaConvergenciaGenetica(cromossomo));
 
                 if(conjuntos.size() < Y && this.verificaVariavelM(conjuntos)){
                     System.out.println("Convergência Genética");
+                    TAXA_MUTACAO = 40;
                     Double taxaIncrementoPopulacao = populacao.size() * 0.3;
                     populacao = new ArrayList<>(miLambda(populacao, taxaIncrementoPopulacao.intValue()));
                     populacao.addAll(inicializaPopulacao(tamanhoPopulacao - taxaIncrementoPopulacao.intValue()));
-                    //populacao = new ArrayList<>(miLambda(populacao, taxaIncrementoPopulacao.intValue()));
                 }
-//            }
+            }
 
             while (tamanho < (tamanhoPopulacao * 2)) {
                 List<Cromossomo> pais = new ArrayList<>(ranking(populacao, 11));
 
                 if(sorteaPorcentagem() <= TAXA_CRUZAMENTO) {
                     Cromossomo filho = crossoverBaseadoEmMaioria(pais);
-
-                    if (sorteaPorcentagem() <= TAXA_MUTACAO) {
-                        mutacao(filho);
-                    }
-
-                    if (filho.getPeso() > PESO_TOTAL_MOCHILA) {
-                        filho.setAvaliacao(filho.getAvaliacao() / ((filho.getPeso() - 12) * 90000000000000000L));
-                    }
-
+                    if (sorteaPorcentagem() <= TAXA_MUTACAO) { mutacao(filho); }
+                    verificaPunicao(filho);
                     populacao.add(filho);
                 } else {
                     ordenaPorMelhorAvaliacao(pais);
-                    populacao.add(pais.get(0));
+
+//                    Cromossomo novoCromossomo = pais.get(0).clone();
+//
+//                    if (sorteaPorcentagem() <= TAXA_MUTACAO) {
+//                        mutacao(novoCromossomo);
+//                        verificaPunicao(novoCromossomo);
+//                    }
+
+                    populacao.add(pais.get(0).clone());
                 }
 
                 tamanho = populacao.size();

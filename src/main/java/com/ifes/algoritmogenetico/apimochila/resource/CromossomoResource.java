@@ -18,8 +18,8 @@ public class CromossomoResource {
     private final CromossomoService cromossomoService;
 
     @GetMapping("/ranking/crossover-baseado-maioria/mi-lambda")
-    public ResponseEntity<List<Cromossomo>> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(){
+    public ResponseEntity<List<Cromossomo>> evolucaoRankingCrossoverBaseadoMaioriaMiLambda() throws CloneNotSupportedException {
         cromossomoService.abasteceBaseDados();
-        return new ResponseEntity<>(cromossomoService.evolucaoRankingCrossoverBaseadoMaioriaMiLambda(1000, 300), HttpStatus.OK);
+        return new ResponseEntity<>(cromossomoService.evolucaoRankingCrossoverBaseadoMaioriaMiLambda(2000, 150), HttpStatus.OK);
     }
 }
