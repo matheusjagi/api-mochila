@@ -341,7 +341,7 @@ public class CromossomoService {
         for (Integer iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
             tamanho = populacao.size();
 
-            if(iteracao % 10 == 0 && iteracao != 0) {
+            if(iteracao % 3 == 0 && iteracao != 0) {
                 conjuntos = new ArrayList<>();
                 List<Cromossomo> populacaoAuxiliar = new ArrayList(populacao);
                 populacaoAuxiliar.forEach(cromossomo -> calculaConvergenciaGenetica(cromossomo));
@@ -365,14 +365,6 @@ public class CromossomoService {
                     populacao.add(filho);
                 } else {
                     ordenaPorMelhorAvaliacao(pais);
-
-//                    Cromossomo novoCromossomo = pais.get(0).clone();
-//
-//                    if (sorteaPorcentagem() <= TAXA_MUTACAO) {
-//                        mutacao(novoCromossomo);
-//                        verificaPunicao(novoCromossomo);
-//                    }
-
                     populacao.add(pais.get(0).clone());
                 }
 
