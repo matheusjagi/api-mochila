@@ -22,4 +22,10 @@ public class CromossomoResource {
         cromossomoService.abasteceBaseDados();
         return new ResponseEntity<>(cromossomoService.evolucaoRankingCrossoverBaseadoMaioriaMiLambda(2000, 150), HttpStatus.OK);
     }
+
+    @GetMapping("/multiobjetivo/nsgaii")
+    public ResponseEntity<List<Cromossomo>> evolucaoMultiobjetivoNSGAII() throws CloneNotSupportedException {
+        cromossomoService.abasteceBaseDados();
+        return new ResponseEntity<>(cromossomoService.evolucaoMultiobjetivoNSGAII(1000, 150), HttpStatus.OK);
+    }
 }

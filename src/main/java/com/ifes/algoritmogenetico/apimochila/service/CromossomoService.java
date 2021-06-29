@@ -59,6 +59,8 @@ public class CromossomoService {
             cromossomo.setPeso(capacidadeMochila);
         }
 
+        calculaAtributosDoCromossomo(cromossomo);
+
         return cromossomo;
     }
 
@@ -70,10 +72,14 @@ public class CromossomoService {
             populacao.set(index, inicializaCromossomo());
         });
 
-        ordenaPorMelhorAvaliacao(populacao);
-
         return populacao;
     }
+
+    public List<Cromossomo> ordenaPorFrentePareto(List<Cromossomo> cromossomos){
+        cromossomos.sort(Comparator.comparing(Cromossomo::getDominio));
+        return cromossomos;
+    }
+
 
     public List<Cromossomo> ordenaPorMelhorAvaliacao(List<Cromossomo> cromossomos){
         cromossomos.sort(Comparator.comparing(Cromossomo::getAvaliacao).reversed());
@@ -132,6 +138,13 @@ public class CromossomoService {
         });
     }
 
+    public void calculaAtributosDoCromossomo(Cromossomo cromossomo){
+        calculaAvaliacaoCromossomo(cromossomo);
+        calculaPesoCromossomo(cromossomo);
+        calculaPrecoCromossomo(cromossomo);
+        calculaUtilidadeCromossomo(cromossomo);
+    }
+
     public void calculaAtributosDaPopulacao(List<Cromossomo> populacao){
         populacao.forEach(cromossomo -> {
             calculaAvaliacaoCromossomo(cromossomo);
@@ -171,10 +184,8 @@ public class CromossomoService {
             }
         });
 
-        calculaAvaliacaoCromossomo(filho_1);
-        calculaPesoCromossomo(filho_1);
-        calculaAvaliacaoCromossomo(filho_2);
-        calculaPesoCromossomo(filho_2);
+        calculaAtributosDoCromossomo(filho_1);
+        calculaAtributosDoCromossomo(filho_2);
 
         filhos.addAll(Arrays.asList(filho_1,filho_2));
 
@@ -222,8 +233,7 @@ public class CromossomoService {
             }
         });
 
-        calculaAvaliacaoCromossomo(filhoGerado);
-        calculaPesoCromossomo(filhoGerado);
+        calculaAtributosDoCromossomo(filhoGerado);
 
         return filhoGerado;
     }
@@ -287,8 +297,7 @@ public class CromossomoService {
             }
         });
 
-        calculaAvaliacaoCromossomo(cromossomo);
-        calculaPesoCromossomo(cromossomo);
+        calculaAtributosDoCromossomo(cromossomo);
     }
 
     public void verificaPunicao(Cromossomo cromossomo){
@@ -307,7 +316,7 @@ public class CromossomoService {
         AtomicBoolean flag = new AtomicBoolean(true);
 
         if(conjuntos.isEmpty()) {
-            conjuntos.add(new ArrayList<Cromossomo>(Arrays.asList(cromossomo)));
+            conjuntos.add(new ArrayList<Cromossomo>(Collections.singletonList(cromossomo)));
         } else {
             conjuntos.forEach(conjunto -> {
                 Long calculo = calculaDiferencaEntreGenes(conjunto.get(0), cromossomo);
@@ -319,7 +328,7 @@ public class CromossomoService {
             });
 
             if(flag.get()){
-                conjuntos.add(new ArrayList<Cromossomo>(Arrays.asList(cromossomo)));
+                conjuntos.add(new ArrayList<Cromossomo>(Collections.singletonList(cromossomo)));
             }
         }
     }
@@ -333,6 +342,119 @@ public class CromossomoService {
     }
 
     public List<Cromossomo> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(Integer tamanhoPopulacao, Integer quantidadeEvolucao) throws CloneNotSupportedException {
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        Integer tamanho = 0;
+        Integer TAXA_CRUZAMENTO = 85;
+        Integer TAXA_MUTACAO = 25;
+
+        for (Integer iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = populacao.size();
+
+            if(iteracao % 3 == 0 && iteracao != 0) {
+                conjuntos = new ArrayList<>();
+                List<Cromossomo> populacaoAuxiliar = new ArrayList(populacao);
+                populacaoAuxiliar.forEach(cromossomo -> calculaConvergenciaGenetica(cromossomo));
+
+                if(conjuntos.size() < Y && verificaVariavelM(conjuntos)){
+                    System.out.println("Convergência Genética");
+                    TAXA_MUTACAO = 40;
+                    Double taxaIncrementoPopulacao = populacao.size() * 0.3;
+                    populacao = new ArrayList<>(miLambda(populacao, taxaIncrementoPopulacao.intValue()));
+                    populacao.addAll(inicializaPopulacao(tamanhoPopulacao - taxaIncrementoPopulacao.intValue()));
+                }
+            }
+
+            while (tamanho < (tamanhoPopulacao * 2)) {
+                List<Cromossomo> pais = new ArrayList<>(ranking(populacao, 11));
+
+                if(sorteaPorcentagem() <= TAXA_CRUZAMENTO) {
+                    Cromossomo filho = crossoverBaseadoEmMaioria(pais);
+                    if (sorteaPorcentagem() <= TAXA_MUTACAO) { mutacao(filho); }
+                    verificaPunicao(filho);
+                    populacao.add(filho);
+                } else {
+                    ordenaPorMelhorAvaliacao(pais);
+                    populacao.add(pais.get(0).clone());
+                }
+
+                tamanho = populacao.size();
+            }
+
+            ordenaPorMelhorAvaliacao(populacao);
+            populacao = new ArrayList<>(miLambda(populacao, tamanhoPopulacao));
+        }
+
+        calculaAtributosDaPopulacao(populacao);
+        calculaItensColocadosNaMochilaDaPopulacao(populacao);
+
+        return populacao;
+    }
+
+    public void calculaDistanciaAglomeracao(List<Cromossomo> cromossomos){
+        Double precoMax = cromossomos.stream().max(Comparator.comparing(Cromossomo::getPreco)).get().getPreco();
+        Double precoMin = cromossomos.stream().min(Comparator.comparing(Cromossomo::getPreco)).get().getPreco();
+        Double utilidadeMax = cromossomos.stream().max(Comparator.comparing(Cromossomo::getUtilidade)).get().getPreco();
+        Double utilidadeMin = cromossomos.stream().min(Comparator.comparing(Cromossomo::getUtilidade)).get().getPreco();
+
+        IntStream.range(0, cromossomos.size()).forEach(index -> {
+            if(index == 0) {
+                cromossomos.get(index).setDistanciaAglomeracao(
+                        ((cromossomos.get(index + 1).getPreco() - 0) / (precoMax - precoMin)) +
+                                ((0 - cromossomos.get(index + 1).getUtilidade()) / (utilidadeMax - utilidadeMin))
+                );
+            } else if(index == cromossomos.size() - 1) {
+                cromossomos.get(index).setDistanciaAglomeracao(
+                        ((0 - cromossomos.get(index - 1).getPreco()) / (precoMax - precoMin)) +
+                                ((cromossomos.get(index - 1).getUtilidade() - 0) / (utilidadeMax - utilidadeMin))
+                );
+            } else {
+                cromossomos.get(index).setDistanciaAglomeracao(
+                        ((cromossomos.get(index + 1).getPreco() - cromossomos.get(index - 1).getPreco()) / (precoMax - precoMin)) +
+                                ((cromossomos.get(index - 1).getUtilidade() - cromossomos.get(index + 1).getUtilidade()) / (utilidadeMax - utilidadeMin))
+                );
+            }
+        });
+    }
+
+    public List<Cromossomo> grupoPontoCorte(List<Cromossomo> populacao){
+        Integer pontoCorte = populacao.get((populacao.size() / 2) - 1).getDominio();
+
+        return populacao.stream().filter(cromossomo -> cromossomo.getDominio() == pontoCorte).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public List<Cromossomo> removeItensComPesoEstourado(List<Cromossomo> populacao){
+        return populacao.stream().filter(cromossomo -> cromossomo.getPeso() <= PESO_TOTAL_MOCHILA).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public void comparaDominancia(Cromossomo cromossomo, List<Cromossomo> populacao){
+        populacao.forEach(result -> {
+            if(cromossomo.getPreco() < result.getPreco() || cromossomo.getUtilidade() < result.getUtilidade()){
+                cromossomo.setDominio(cromossomo.getDominio() + 1);
+            }
+        });
+    }
+
+    public void calculaDominancia(List<Cromossomo> cromossomos){
+        List<Cromossomo> populacaoAuxiliar = new ArrayList<>(cromossomos);
+
+        cromossomos.forEach(cromossomo -> {
+            comparaDominancia(cromossomo, populacaoAuxiliar);
+        });
+    }
+
+    public void organizaPorDistanciaAglomeracao(List<Cromossomo> pedacoPopulacao){
+
+    }
+
+    public void metodoDeBorda(List<Cromossomo> populacaoNaoDominados){
+
+    }
+
+    public void metodoAPH(List<Cromossomo> populacao){
+
+    }
+
+    public List<Cromossomo> evolucaoMultiobjetivoNSGAII(Integer tamanhoPopulacao, Integer quantidadeEvolucao) throws CloneNotSupportedException {
         List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
         Integer tamanho = 0;
         Integer TAXA_CRUZAMENTO = 85;
@@ -368,15 +490,16 @@ public class CromossomoService {
                     populacao.add(pais.get(0).clone());
                 }
 
+                populacao = removeItensComPesoEstourado(populacao);
                 tamanho = populacao.size();
             }
 
-            ordenaPorMelhorAvaliacao(populacao);
-            populacao = new ArrayList<>(miLambda(populacao, tamanhoPopulacao));
+            calculaDominancia(populacao);
+            ordenaPorFrentePareto(populacao);
+
         }
 
-        calculaAtributosDaPopulacao(populacao);
-        calculaItensColocadosNaMochilaDaPopulacao(populacao);
+//        calculaItensColocadosNaMochilaDaPopulacao(populacao);
 
         return populacao;
     }
