@@ -80,6 +80,10 @@ public class CromossomoService {
         return cromossomos;
     }
 
+    public List<Cromossomo> ordenaPorDistanciaAglomeracao(List<Cromossomo> cromossomos){
+        cromossomos.sort(Comparator.comparing(Cromossomo::getDistanciaAglomeracao).reversed());
+        return cromossomos;
+    }
 
     public List<Cromossomo> ordenaPorMelhorAvaliacao(List<Cromossomo> cromossomos){
         cromossomos.sort(Comparator.comparing(Cromossomo::getAvaliacao).reversed());
@@ -393,8 +397,8 @@ public class CromossomoService {
     public void calculaDistanciaAglomeracao(List<Cromossomo> cromossomos){
         Double precoMax = cromossomos.stream().max(Comparator.comparing(Cromossomo::getPreco)).get().getPreco();
         Double precoMin = cromossomos.stream().min(Comparator.comparing(Cromossomo::getPreco)).get().getPreco();
-        Double utilidadeMax = cromossomos.stream().max(Comparator.comparing(Cromossomo::getUtilidade)).get().getPreco();
-        Double utilidadeMin = cromossomos.stream().min(Comparator.comparing(Cromossomo::getUtilidade)).get().getPreco();
+        Long utilidadeMax = cromossomos.stream().max(Comparator.comparing(Cromossomo::getUtilidade)).get().getUtilidade();
+        Long utilidadeMin = cromossomos.stream().min(Comparator.comparing(Cromossomo::getUtilidade)).get().getUtilidade();
 
         IntStream.range(0, cromossomos.size()).forEach(index -> {
             if(index == 0) {
@@ -417,9 +421,9 @@ public class CromossomoService {
     }
 
     public List<Cromossomo> grupoPontoCorte(List<Cromossomo> populacao){
-        Integer pontoCorte = populacao.get((populacao.size() / 2) - 1).getDominio();
+        Long pontoCorte = populacao.get((populacao.size() / 2) - 1).getDominio();
 
-        return populacao.stream().filter(cromossomo -> cromossomo.getDominio() == pontoCorte).collect(Collectors.toCollection(ArrayList::new));
+        return populacao.stream().filter(cromossomo -> cromossomo.getDominio().equals(pontoCorte)).collect(Collectors.toList());
     }
 
     public List<Cromossomo> removeItensComPesoEstourado(List<Cromossomo> populacao){
@@ -438,12 +442,16 @@ public class CromossomoService {
         List<Cromossomo> populacaoAuxiliar = new ArrayList<>(cromossomos);
 
         cromossomos.forEach(cromossomo -> {
+            cromossomo.setDominio(0L);
             comparaDominancia(cromossomo, populacaoAuxiliar);
         });
     }
 
-    public void organizaPorDistanciaAglomeracao(List<Cromossomo> pedacoPopulacao){
-
+    public List<Cromossomo> cortePorFrentePareto(List<Cromossomo> populacao, Long pontoCorte, Integer tamanhoPopulacaoInicial){
+        populacao = populacao.stream().limit(tamanhoPopulacaoInicial).collect(Collectors.toList());
+        return populacao.stream()
+                .filter(cromossomo -> !cromossomo.getDominio().equals(pontoCorte))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     public void metodoDeBorda(List<Cromossomo> populacaoNaoDominados){
@@ -496,7 +504,15 @@ public class CromossomoService {
 
             calculaDominancia(populacao);
             ordenaPorFrentePareto(populacao);
-
+            List<Cromossomo> grupoPontoDeCorte = grupoPontoCorte(populacao);
+            if(grupoPontoDeCorte.size() > 1){
+                calculaDistanciaAglomeracao(grupoPontoDeCorte);
+                ordenaPorDistanciaAglomeracao(grupoPontoDeCorte);
+                populacao = cortePorFrentePareto(populacao, grupoPontoDeCorte.stream().findFirst().get().getDominio(), tamanhoPopulacao);
+                populacao.addAll(grupoPontoDeCorte.stream().limit(tamanhoPopulacao - populacao.size()).collect(Collectors.toCollection(ArrayList::new)));
+            } else {
+                populacao = new ArrayList<>(miLambda(populacao, tamanhoPopulacao));
+            }
         }
 
 //        calculaItensColocadosNaMochilaDaPopulacao(populacao);

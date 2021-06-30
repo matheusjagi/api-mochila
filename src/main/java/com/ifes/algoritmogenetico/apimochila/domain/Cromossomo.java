@@ -28,7 +28,7 @@ public class Cromossomo implements Serializable, Cloneable {
 
     private Double preco;
 
-    private Integer dominio = new Integer(0);
+    private Long dominio = new Long(0);
 
     private Double distanciaAglomeracao = new Double(0.0);
 
