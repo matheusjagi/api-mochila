@@ -4,6 +4,7 @@ import com.ifes.algoritmogenetico.apimochila.domain.Cromossomo;
 import com.ifes.algoritmogenetico.apimochila.domain.Item;
 import com.ifes.algoritmogenetico.apimochila.repository.ItemRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
@@ -75,7 +76,7 @@ public class CromossomoService {
         return populacao;
     }
 
-    public List<Cromossomo> ordenaPorFrentePareto(List<Cromossomo> cromossomos){
+    public List<Cromossomo> ordenaPorMenorDominio(List<Cromossomo> cromossomos){
         cromossomos.sort(Comparator.comparing(Cromossomo::getDominio));
         return cromossomos;
     }
@@ -92,6 +93,21 @@ public class CromossomoService {
 
     public List<Cromossomo> ordenaPorPiorAvaliacao(List<Cromossomo> cromossomos){
         cromossomos.sort(Comparator.comparing(Cromossomo::getAvaliacao));
+        return cromossomos;
+    }
+
+    public List<Cromossomo> ordenaPorMelhorUtilidade(List<Cromossomo> cromossomos){
+        cromossomos.sort(Comparator.comparing(Cromossomo::getUtilidade).reversed());
+        return cromossomos;
+    }
+
+    public List<Cromossomo> ordenaPorMelhorPreco(List<Cromossomo> cromossomos){
+        cromossomos.sort(Comparator.comparing(Cromossomo::getPreco).reversed());
+        return cromossomos;
+    }
+
+    public List<Cromossomo> ordenaPorMelhorAHP(List<Cromossomo> cromossomos){
+        cromossomos.sort(Comparator.comparing(Cromossomo::getPesoComparacaoAHP).reversed());
         return cromossomos;
     }
 
@@ -345,7 +361,8 @@ public class CromossomoService {
         return false;
     }
 
-    public List<Cromossomo> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(Integer tamanhoPopulacao, Integer quantidadeEvolucao) throws CloneNotSupportedException {
+    @SneakyThrows
+    public List<Cromossomo> evolucaoRankingCrossoverBaseadoMaioriaMiLambda(Integer tamanhoPopulacao, Integer quantidadeEvolucao) {
         List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
         Integer tamanho = 0;
         Integer TAXA_CRUZAMENTO = 85;
@@ -421,7 +438,7 @@ public class CromossomoService {
     }
 
     public List<Cromossomo> grupoPontoCorte(List<Cromossomo> populacao){
-        Long pontoCorte = populacao.get((populacao.size() / 2) - 1).getDominio();
+        Integer pontoCorte = populacao.get((populacao.size() / 2) - 1).getDominio();
 
         return populacao.stream().filter(cromossomo -> cromossomo.getDominio().equals(pontoCorte)).collect(Collectors.toList());
     }
@@ -442,27 +459,110 @@ public class CromossomoService {
         List<Cromossomo> populacaoAuxiliar = new ArrayList<>(cromossomos);
 
         cromossomos.forEach(cromossomo -> {
-            cromossomo.setDominio(0L);
+            cromossomo.setDominio(0);
             comparaDominancia(cromossomo, populacaoAuxiliar);
         });
     }
 
-    public List<Cromossomo> cortePorFrentePareto(List<Cromossomo> populacao, Long pontoCorte, Integer tamanhoPopulacaoInicial){
+    public List<Cromossomo> cortePorFrentePareto(List<Cromossomo> populacao, Integer pontoCorte, Integer tamanhoPopulacaoInicial){
         populacao = populacao.stream().limit(tamanhoPopulacaoInicial).collect(Collectors.toList());
         return populacao.stream()
                 .filter(cromossomo -> !cromossomo.getDominio().equals(pontoCorte))
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public void metodoDeBorda(List<Cromossomo> populacaoNaoDominados){
+    public Cromossomo metodoDeBorda(List<Cromossomo> populacaoNaoDominados){
+        if(populacaoNaoDominados.size() == 1){
+            return populacaoNaoDominados.get(0);
+        }
 
+        List<Cromossomo> listaOrganizadoraUtilidade = ordenaPorMelhorUtilidade(populacaoNaoDominados);
+        List<Cromossomo> listaOrganizadoraPreco = ordenaPorMelhorPreco(populacaoNaoDominados);
+
+        populacaoNaoDominados.forEach(cromossomo -> {
+            cromossomo.setDominio(listaOrganizadoraUtilidade.indexOf(cromossomo) + listaOrganizadoraPreco.indexOf(cromossomo));
+        });
+
+        ordenaPorMenorDominio(populacaoNaoDominados);
+
+        return populacaoNaoDominados.get(0);
     }
 
-    public void metodoAPH(List<Cromossomo> populacao){
+    public List<Long> montaTabelaSaatyUtilidade(List<Cromossomo> populacaoNaoDominados){
+        List<Long> tabelaSaatyUtilidade = new ArrayList<Long>();
 
+        Long maiorUtilidade = populacaoNaoDominados.stream().max(Comparator.comparing(Cromossomo::getUtilidade)).get().getUtilidade();
+        Long menorUtilidade = populacaoNaoDominados.stream().min(Comparator.comparing(Cromossomo::getUtilidade)).get().getUtilidade();
+        Long metricaUtilidade = (maiorUtilidade - menorUtilidade) / 7;
+        tabelaSaatyUtilidade.add(menorUtilidade);
+
+        IntStream.range(0, 8).forEach(index -> {
+            tabelaSaatyUtilidade.add(tabelaSaatyUtilidade.get(tabelaSaatyUtilidade.size() - 1) + metricaUtilidade);
+        });
+
+        return tabelaSaatyUtilidade;
     }
 
-    public List<Cromossomo> evolucaoMultiobjetivoNSGAII(Integer tamanhoPopulacao, Integer quantidadeEvolucao) throws CloneNotSupportedException {
+    public List<Double> montaTabelaSaatyPreco(List<Cromossomo> populacaoNaoDominados){
+        List<Double> tabelaSaatyPreco = new ArrayList<Double>();
+
+        Double maiorPreco = populacaoNaoDominados.stream().max(Comparator.comparing(Cromossomo::getPreco)).get().getPreco();
+        Double menorPreco = populacaoNaoDominados.stream().min(Comparator.comparing(Cromossomo::getPreco)).get().getPreco();
+        Double metricaPreco = (maiorPreco - menorPreco) / 7;
+        tabelaSaatyPreco.add(menorPreco);
+
+        IntStream.range(0, 8).forEach(index -> {
+            tabelaSaatyPreco.add(tabelaSaatyPreco.get(tabelaSaatyPreco.size() - 1) + metricaPreco);
+        });
+
+        return tabelaSaatyPreco;
+    }
+
+    public Cromossomo metodoAPH(List<Cromossomo> populacaoNaoDominados){
+        if(populacaoNaoDominados.size() == 1){
+            return populacaoNaoDominados.get(0);
+        }
+
+        Double pesoCriterioUtilidade = 0.83;
+        Double pesoCriterioPreco = 0.16;
+
+        List<Long> tabelaSaatyUtilidade = montaTabelaSaatyUtilidade(populacaoNaoDominados);
+        List<Double> tabelaSaatyPreco = montaTabelaSaatyPreco(populacaoNaoDominados);
+
+        for(int iterator = 0; iterator < populacaoNaoDominados.size(); iterator++) {
+            Double avaliacaoUtilidade = 0D;
+            Double avaliacaoPreco = 0D;
+
+            for (int index = 0; index < 9; index++) {
+                if (populacaoNaoDominados.get(iterator).getUtilidade().equals(tabelaSaatyUtilidade.get(index))) {
+                    avaliacaoUtilidade = index * pesoCriterioUtilidade;
+                    break;
+                } else if (populacaoNaoDominados.get(iterator).getUtilidade() < tabelaSaatyUtilidade.get(index)) {
+                    avaliacaoUtilidade = (index - 1) * pesoCriterioUtilidade;
+                    break;
+                }
+            }
+
+            for (int index = 0; index < 9; index++) {
+                if (populacaoNaoDominados.get(iterator).getPreco().equals(tabelaSaatyPreco.get(index))) {
+                    avaliacaoPreco = index * pesoCriterioPreco;
+                    break;
+                } else if (populacaoNaoDominados.get(iterator).getPreco() < tabelaSaatyPreco.get(index)) {
+                    avaliacaoPreco = (index - 1) * pesoCriterioPreco;
+                    break;
+                }
+            }
+
+            populacaoNaoDominados.get(iterator).setPesoComparacaoAHP(avaliacaoPreco + avaliacaoUtilidade);
+        }
+
+        ordenaPorMelhorAHP(populacaoNaoDominados);
+
+        return populacaoNaoDominados.get(0);
+    }
+
+    @SneakyThrows
+    public Cromossomo evolucaoMultiobjetivoNSGAIIMetodoDeBorda(Integer tamanhoPopulacao, Integer quantidadeEvolucao) {
         List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
         Integer tamanho = 0;
         Integer TAXA_CRUZAMENTO = 85;
@@ -503,8 +603,9 @@ public class CromossomoService {
             }
 
             calculaDominancia(populacao);
-            ordenaPorFrentePareto(populacao);
+            ordenaPorMenorDominio(populacao);
             List<Cromossomo> grupoPontoDeCorte = grupoPontoCorte(populacao);
+
             if(grupoPontoDeCorte.size() > 1){
                 calculaDistanciaAglomeracao(grupoPontoDeCorte);
                 ordenaPorDistanciaAglomeracao(grupoPontoDeCorte);
@@ -515,8 +616,74 @@ public class CromossomoService {
             }
         }
 
-//        calculaItensColocadosNaMochilaDaPopulacao(populacao);
+        ordenaPorMenorDominio(populacao);
+        Integer melhorNivelDominio = populacao.get(0).getDominio();
 
-        return populacao;
+        Cromossomo melhorIndividuo = metodoDeBorda(populacao.stream().filter(cromossomo -> cromossomo.getDominio().equals(melhorNivelDominio)).collect(Collectors.toCollection(ArrayList::new)));
+
+        return melhorIndividuo;
+    }
+
+    @SneakyThrows
+    public Cromossomo evolucaoMultiobjetivoNSGAIIAHP(Integer tamanhoPopulacao, Integer quantidadeEvolucao) {
+        List<Cromossomo> populacao = inicializaPopulacao(tamanhoPopulacao);
+        Integer tamanho = 0;
+        Integer TAXA_CRUZAMENTO = 85;
+        Integer TAXA_MUTACAO = 25;
+
+        for (Integer iteracao = 0; iteracao < quantidadeEvolucao; iteracao++) {
+            tamanho = populacao.size();
+
+            if(iteracao % 3 == 0 && iteracao != 0) {
+                conjuntos = new ArrayList<>();
+                List<Cromossomo> populacaoAuxiliar = new ArrayList(populacao);
+                populacaoAuxiliar.forEach(cromossomo -> calculaConvergenciaGenetica(cromossomo));
+
+                if(conjuntos.size() < Y && this.verificaVariavelM(conjuntos)){
+                    System.out.println("Convergência Genética");
+                    TAXA_MUTACAO = 40;
+                    Double taxaIncrementoPopulacao = populacao.size() * 0.3;
+                    populacao = new ArrayList<>(miLambda(populacao, taxaIncrementoPopulacao.intValue()));
+                    populacao.addAll(inicializaPopulacao(tamanhoPopulacao - taxaIncrementoPopulacao.intValue()));
+                }
+            }
+
+            while (tamanho < (tamanhoPopulacao * 2)) {
+                List<Cromossomo> pais = new ArrayList<>(ranking(populacao, 11));
+
+                if(sorteaPorcentagem() <= TAXA_CRUZAMENTO) {
+                    Cromossomo filho = crossoverBaseadoEmMaioria(pais);
+                    if (sorteaPorcentagem() <= TAXA_MUTACAO) { mutacao(filho); }
+                    verificaPunicao(filho);
+                    populacao.add(filho);
+                } else {
+                    ordenaPorMelhorAvaliacao(pais);
+                    populacao.add(pais.get(0).clone());
+                }
+
+                populacao = removeItensComPesoEstourado(populacao);
+                tamanho = populacao.size();
+            }
+
+            calculaDominancia(populacao);
+            ordenaPorMenorDominio(populacao);
+            List<Cromossomo> grupoPontoDeCorte = grupoPontoCorte(populacao);
+
+            if(grupoPontoDeCorte.size() > 1){
+                calculaDistanciaAglomeracao(grupoPontoDeCorte);
+                ordenaPorDistanciaAglomeracao(grupoPontoDeCorte);
+                populacao = cortePorFrentePareto(populacao, grupoPontoDeCorte.stream().findFirst().get().getDominio(), tamanhoPopulacao);
+                populacao.addAll(grupoPontoDeCorte.stream().limit(tamanhoPopulacao - populacao.size()).collect(Collectors.toCollection(ArrayList::new)));
+            } else {
+                populacao = new ArrayList<>(miLambda(populacao, tamanhoPopulacao));
+            }
+        }
+
+        ordenaPorMenorDominio(populacao);
+        Integer melhorNivelDominio = populacao.get(0).getDominio();
+
+        Cromossomo melhorIndividuo = metodoAPH(populacao.stream().filter(cromossomo -> cromossomo.getDominio().equals(melhorNivelDominio)).collect(Collectors.toCollection(ArrayList::new)));
+
+        return melhorIndividuo;
     }
 }
