@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+
+import javax.persistence.criteria.CriteriaBuilder;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,6 +27,12 @@ public class Cromossomo implements Serializable, Cloneable {
     private Long utilidade;
 
     private Double preco;
+
+    private Integer dominio = new Integer(0);
+
+    private Double distanciaAglomeracao = new Double(0.0);
+
+    private Double pesoComparacaoAHP;
 
     private Long quantidadeItensColocadosMochila;
 
